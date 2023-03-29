@@ -1,4 +1,300 @@
+<!DOCTYPE html>
 <html>
-<body>
-<p><a href="https://space.bilibili.com/672328094">网站开发中</a>
+	<head>
+		<meta charset="utf-8">
+		<title>超级AI工具箱web版</title>
+		<style>
+			*{margin: 0;padding: 0;list-style-type: none;}
+			#content{
+				border: 1px solid #ebebeb;
+				border-radius: 3px;
+				transition: .2s;
+				padding: 10px;
+				height: 100vh;
+				width: 100vw;
+				padding-bottom: 60px;
+				box-sizing: border-box;
+				overflow-y: auto;
+				display: flex;flex-wrap: wrap;flex-direction: column-reverse;
+				background-color: #0b9222;
+			}
+			.question{
+				display: flex;
+				justify-content: right;
+				word-wrap: break-word;
+				word-break: break-all;
+                white-space: pre-wrap;
+				
+			}
+			.answer{
+				display: flex;
+				justify-content: left;
+				word-wrap: break-word;
+				word-break: break-all;
+                white-space: pre-wrap;
+			}
+			.answer .el_p{
+				border-left: 15px solid #50bfff;
+			}
+			.question .el_p{
+				border-right: 15px solid #50bfff;
+			}
+			.el_p{
+				padding: 8px 16px;
+				background-color: #ecf8ff;
+				border-radius: 4px;
+				display: inline-block;
+			}
+			.el_input{
+				-webkit-appearance: none;
+				background-color: #fff;
+				background-image: none;
+				border-radius: 4px;
+				border: 1px solid #dcdfe6;
+				box-sizing: border-box;
+				color: #606266;
+				/* display: inline-block; */
+				font-size: inherit;
+				height: auto;
+				line-height: 40px;
+				word-wrap: break-word;
+				word-break: break-all;
+                white-space: pre-wrap;
+				outline: none;
+				padding: 0 15px;
+				transition: border-color .2s cubic-bezier(.645,.045,.355,1);
+			}
+			.el_button{
+				display: inline-block;
+				line-height: 1;
+				white-space: nowrap;
+				cursor: pointer;
+				background: #fff;
+				border: 1px solid #dcdfe6;
+				color: #606266;
+				-webkit-appearance: none;
+				box-sizing: border-box;
+				outline: none;
+				margin: 0;
+				transition: .1s;
+				font-weight: 500;
+				-moz-user-select: none;
+				-webkit-user-select: none;
+				-ms-user-select: none;
+				padding: 12px 20px;
+				font-size: 14px;
+				border-radius: 4px;
+				color: #fff;
+				background-color: #409eff;
+				border-color: #409eff;
+			}
+			#msgs{display: flex;flex-wrap: wrap;flex-direction: column;}
+			#msgs div{padding:5px 0;font-size:13px;}
+		</style>
+	</head>
+	<body>
+		<div id="content">
+			<div id="msgs" >
+			<!-- <div class="question"><p class=" el_p" >是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智</p></div>
+			<div class="question"><p class=" el_p" >qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq</p></div>
+			<div class="answer"><p class=" el_p" >我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智我是小智</p></div> -->
+			</div>
+		</div>
+		<div style="padding: 10px;position: fixed;bottom: 0px;width: 100%;box-sizing: border-box;margin: 0px;left: 0px; right: 0px;" >
+			<input id="inp" placeholder="请输入您的KEY!" class="el_input" onkeyup="page.inpKeyup(event)" style="width: 80%;"/>
+			<button id="sendBtn" class="el_button"  style="display: inline-block;width: 18%;" onclick="page.send()" >发送</button>
+		</div>
+		<script src="jquery-3.5.1.min.js"></script>
+		<script type="text/javascript" >
+			var page={
+				apiKey:'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',
+				msgbox:[{"role":"system","content":"你是一个有用的助手"}],
+				sending:false,
+				/**
+				 * 监听输入框回车事件
+				 * @param {Event} event
+				 */
+				inpKeyup:function(event){
+					if(event.keyCode == 13){
+						page.send();
+					 }
+				},
+				/**
+				 * 更新key
+				 * @param {string} key openai的key
+				 */
+				updateKey:function(key){
+					page.apiKey = key;
+					$('#inp').val('');
+					if(key){
+						$('#inp').attr('placeholder','输入问题,开始问我吧!');
+					}else{
+						$('#inp').attr('placeholder','请输入您的KEY!');
+					}
+				},
+				/**
+				 * 处理错误信息
+				 * @param {String} errMsg
+				 */
+				showError:function(errMsg){
+					if(errMsg == 'Unauthorized'){
+						errMsg = "key错误，请输入您的KEY！";
+						page.updateKey(null);
+					}
+					// alert(errMsg);
+					page.openaiOnMessage(errMsg);
+				},
+				/**
+				 * 查询回答
+				 */
+				send:function(){
+					var q = $("#inp").val();
+					if(!q){
+						return;
+					}
+					//还没有设置key，这里设置key
+					if(!page.apiKey){
+						page.updateKey(q);
+						return;
+					}
+					//上一个答案，传入上一个答案让它更智能
+					if($('.answer').length > 0){
+						console.log('answer',$('.answer').last().find('p').text())
+						var Obj1= {
+							role:"assistant",
+							content:$('.answer').last().find('p').text(),
+						}
+						page.msgbox.push(Obj1);
+					}
+					var lastAnswer = null;
+					console.log('page.msgbox',page.msgbox)
+					if(page.msgbox.length >= 10){
+						page.msgbox.splice(1,2);
+					}
+					
+					// try{
+					// 	lastAnswer = $('.answer').last().find('p').text();
+					// 	if(!lastAnswer){
+					// 		lastAnswer = '';
+					// 	}
+					// }catch(e){lastAnswer = ''}
+
+					var Obj= {
+						role:"user",
+						content:q,
+					}
+					page.msgbox.push(Obj);
+
+					$('#msgs').append('<div class="question"><p class="el_p" >'+q+'</p></div><div class="answer"><p class="el_p" ></p></div>');
+					this.sendToOpenai(q,lastAnswer);
+				},
+				/**openai回答事件
+				 * @param {string} msg 回答内容
+				 */
+				openaiOnMessage(msg){
+					if(!msg){
+						return;
+					}
+					var p = $('.answer').last().find('p');
+					var ptext = p.text();
+					if(!ptext){
+						ptext='';
+					}
+					p.text(ptext+msg);
+				},
+				/**
+				 * 更新发送状态
+				 * @param {boolean} isSending 是否正在请求
+				 */
+				updateSending(isSending){
+					page.sending = isSending;
+					$("#sendBtn").attr("disabled",isSending);
+					if(isSending){
+						var q = $("#inp").val('');
+					}
+				},
+				/**
+				 * 发送请求到openai
+				 * @param {string} msg 问题内容
+				 */
+				async sendToOpenai(msg,lastAnswer){
+					if(page.isSending){
+						return;
+					}
+					
+					try{
+						var myHeaders = new Headers();
+						myHeaders.append("Authorization", "Bearer "+page.apiKey);
+						myHeaders.append("Content-Type", "application/json");
+					}catch(e){
+						page.showError('Unauthorized');
+						return;
+					}
+					
+					var dataParam = JSON.stringify({
+						"stream":true,
+					  	"model": "gpt-3.5-turbo",
+					  	"messages":page.msgbox
+					});
+					// console.log('dataParam',dataParam);
+					var requestOptions = {
+					  method: 'POST',
+					  headers: myHeaders,
+					  body: dataParam,
+					  redirect: 'follow'
+					};
+					page.updateSending(true);
+					var response = await fetch("https://wqtchat.xyz/v1/chat/completions", requestOptions)
+					.finally(()=>{
+						page.updateSending(false);
+					});
+					if (!response.ok) {
+					  page.showError(response.statusText);
+					  return;
+					}
+				
+					const data = response.body;
+					if (!data) {
+					  return;
+					}
+				
+					const reader = data.getReader();
+					const decoder = new TextDecoder();
+					let done = false;
+				
+					var lastContext = '';
+				
+					while (!done) {
+					  const { value, done: doneReading } = await reader.read();
+					  done = doneReading;
+					  let chunkValue = decoder.decode(value);
+					  chunkValue = lastContext+chunkValue;
+					  var arr = chunkValue.split("\n");
+					  
+					  for(var i=0;i<arr.length;i++)
+					  {
+						  var item = arr[i].trim().replace("data: ","");
+						  if(item == '[DONE]'){
+							  continue;
+						  }
+						  try{
+							  var itemJson = JSON.parse(item);
+							  page.openaiOnMessage(itemJson.choices[0].delta.content);
+						  }catch(e){
+							  lastContext = item;
+						  }
+					  }
+					}
+					 
+				}
+			};
+			
+			$(function(){
+				if(page.apiKey){
+					$('#inp').attr('placeholder','输入问题,开始问我吧!');
+				}
+			})
+	
+		</script>
+	</body>
 </html>
